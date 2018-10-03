@@ -1,5 +1,6 @@
 const express = require('express');
 const Usuario = require('../models/usuario');
+const {verificaToken, verificaAdmin_Role } = require('../middlewares/autentificacion');
 
 const app = express();
 const bcrypt = require('bcryptjs');
@@ -9,7 +10,13 @@ const _ = require('underscore');
 
 
 // Obtiene información de la tabla Usuario
-app.get('/usuario', (req, res) => {
+app.get('/usuario',verificaToken ,(req, res) => {
+
+    return res.json({
+        usuario: req.usuario,
+        nombre: req.usuario.nombre,
+        email: req.usuario.email
+    });
 
     let desde = req.query.desde || 0;
     desde = Number(desde);
@@ -40,7 +47,7 @@ app.get('/usuario', (req, res) => {
 });
 
 // Envia información a la BD-NOSQL de la tabla Usuario
-app.post('/usuario', (req, res) => {
+app.post('/usuario',[verificaToken, verificaAdmin_Role], (req, res) => {
     let body = req.body;
     let usuario = new Usuario({
         nombre: body.nombre,
@@ -68,7 +75,7 @@ app.post('/usuario', (req, res) => {
 
 
 // Edita Información de la tabla NOSQL Usuario
-app.put('/usuario/:id', (req, res) => {
+app.put('/usuario/:id',[verificaToken, verificaAdmin_Role], (req, res) => {
     let id = req.params.id;
     let body = _.pick(req.body, ['nombre', 'email', 'img', 'role', 'estado']);
     Usuario.findByIdAndUpdate(id, body, { new: true, runValidators: true }, (err, usuarioDB) => {
@@ -88,10 +95,11 @@ app.put('/usuario/:id', (req, res) => {
 });
 
 
-app.delete('/usuario/:id', (req, res) => {
+app.delete('/usuario/:id',[verificaToken, verificaAdmin_Role], (req, res) => {
 
     let id =req.params.id;
 
+    
     Usuario.findByIdAndRemove(id,(err,usuarioBorrado)=>{
 
         if (err) {
